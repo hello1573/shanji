@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+.tools/
+
+# Local point-cloud data and generated outputs
+data/
+logs/
+tmp_simple_test/
+quanfenlei/
+processed_*.las
+*.las
+*.laz
+*.tif
+*.tiff
+*.zip
+
+# Generated analysis outputs
+output/
+outputs*/
+openness_output/
+
+# Local/editor files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

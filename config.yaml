@@ -1,0 +1,505 @@
+﻿input_las: "processed_12.las"
+output_dir: "outputs_flowtrace_v13"
+ground_class: 2
+ground_classes: [2, 16]
+
+simple_openness:
+  enabled: true
+  classes: [2, 16]
+  output_class: 3
+  point_buffer_distance: 10.0
+  point_mapping_mode: "nearest_line_cell"
+  points_per_line_cell: 3
+  radius_m: 120.0
+  tpi_radius_m: 120.0
+  sample_step_m: 6.0
+  directions: 8
+  smooth_sigma_cells: 0.9
+  render_percentile_low: 2.0
+  render_percentile_high: 98.0
+  render_gamma: 1.0
+  render_invert: false
+  valley_openness_percentile: 35.0
+  ridge_openness_percentile: 70.0
+  valley_tpi_percentile: 35.0
+  ridge_tpi_percentile: 65.0
+  closing_disk: 1
+  min_area_cells: 20
+  line_min_cells: 8
+
+dtm:
+  resolution: 2.0
+  max_fill_distance: 20.0
+  smooth_sigma_cells: 1.2
+
+ridge_dtm:
+  smooth_sigma_cells: 0.9
+
+hydrology:
+  fill_sinks: false
+
+extraction:
+  method: "flow_trace_two_stage"
+  min_accumulation_cells: 30
+
+valley:
+  primary:
+    seed_percentile: 97.8
+    continue_percentile: 85.0
+    min_line_length: 90.0
+    keep_top_n: 30
+    max_dedup_seeds: 800
+  supplement:
+    enabled: true
+    seed_percentile: 95.8
+    continue_percentile: 78.0
+    min_line_length: 70.0
+    keep_top_n: 25
+    max_dedup_seeds: 500
+
+ridge:
+  primary:
+    seed_percentile: 98.5
+    continue_percentile: 93.0
+    min_line_length: 90.0
+    keep_top_n: 0
+    max_dedup_seeds: 150
+    min_seed_distance: 35.0
+  supplement:
+    enabled: false
+    seed_percentile: 96.0
+    continue_percentile: 90.0
+    min_line_length: 80.0
+    keep_top_n: 8
+    max_dedup_seeds: 120
+    min_seed_distance: 35.0
+
+trace:
+  max_gap_cells: 5
+  min_seed_distance: 35.0
+  max_dedup_seeds: 1000
+  allow_connect_to_existing: true
+  visited_overlap_threshold: 0.55
+
+supplement_filter:
+  min_distance_from_existing: 30.0
+  near_ratio_threshold: 0.75
+  sample_points: 30
+  spatial_grid_size: 180.0
+  keep_per_grid: 3
+
+ridge_supplement_filter:
+  min_distance_from_existing: 10.0
+  near_ratio_threshold: 0.94
+  sample_points: 30
+  spatial_grid_size: 120.0
+  keep_per_grid: 6
+
+local_supplement:
+  enabled: true
+  ridge_enabled: false
+  grid_size: 220.0
+  valley_local_seed_percentile: 90.0
+  ridge_local_seed_percentile: 97.0
+  max_seeds_per_grid: 1
+  only_far_from_existing: true
+  min_distance_from_existing: 24.0
+
+edge_filter:
+  enabled: true
+  ridge_edge_buffer_m: 80.0
+  valley_edge_buffer_m: 20.0
+  max_near_edge_ratio: 0.10
+  reject_if_endpoint_near_edge: true
+  endpoint_edge_buffer_m: 70.0
+  short_line_length_m: 120.0
+  short_line_near_edge_ratio: 0.05
+
+line_prune:
+  enabled: true
+  valley_min_distance: 18.0
+  ridge_min_distance: 14.0
+  near_ratio_threshold: 0.70
+
+postprocess:
+  merge_distance: 12.0
+  simplify_tolerance: 0.8
+  max_merge_angle_deg: 35.0
+  max_merge_iterations: 3
+
+postprocess_valley:
+  merge_distance: 12.0
+  simplify_tolerance: 0.8
+  max_merge_angle_deg: 35.0
+  max_merge_iterations: 3
+
+postprocess_ridge:
+  merge_distance: 20.0
+  simplify_tolerance: 0.8
+  max_merge_angle_deg: 50.0
+  max_merge_iterations: 4
+
+point_mapping:
+  point_buffer_distance: 5.0
+  use_importance_filter: true
+  min_importance_level: "medium"
+
+output:
+  save_feature_points: true
+  save_final_preview: true
+  save_stage_previews: false
+  save_debug_images: false
+  save_seed_debug: false
+  save_broad_debug: false
+  save_ridge_debug: false
+  save_openness_debug: false
+  debug_outputs: false
+
+broad_valley:
+  enabled: true
+  radius_m: 120.0
+  valley_score_percentile: 80.0
+  min_area_cells: 100
+  min_line_length: 80.0
+  max_slope_deg: 30.0
+  keep_top_n: 30
+  min_distance_from_existing: 25.0
+  near_ratio_threshold: 0.75
+  filter_existing_flow_lines: false
+  merge_to_valley: true
+  closing_disk: 4
+
+broad_valley_prune:
+  min_distance: 12.0
+  near_ratio_threshold: 0.85
+
+major_valley_filter:
+  enabled: true
+  min_line_length_m: 130.0
+  min_mean_acc_percentile: 60.0
+  min_valley_extreme_ratio: 0.40
+  min_valley_relief_m: 1.0
+  keep_top_n: 80
+  use_for_ridge: true
+  use_for_output: false
+
+terrain_active:
+  enabled: true
+  relief_radius_m: [80.0, 160.0]
+  min_relief_m: [1.0, 1.5]
+
+ridge_openness_top:
+  enabled: true
+  radii_m: [40.0, 80.0, 160.0, 240.0]
+  sample_step_m: 6.0
+  directions: 8
+  profile_weight: 0.42
+  openness_weight: 0.32
+  tpi_weight: 0.16
+  relief_weight: 0.10
+  valley_support_weight: 0.00
+  score_percentile: 70.0
+  min_tpi_percentile: 28.0
+  min_local_relief_m: 0.8
+  local_max_window_m: 90.0
+  local_max_tolerance: 0.07
+  min_distance_to_valley_m: 5.0
+  max_distance_to_valley_m: 9999.0
+  min_edge_distance_m: 70.0
+  closing_disk: 2
+  min_area_cells: 45
+  min_line_length: 100.0
+  keep_top_n: 120
+
+profile_ridge:
+  sample_distances_m: [20.0, 40.0, 80.0, 160.0, 240.0]
+  directions: 8
+  shoulder_factor: 0.50
+
+broad_crest_ridge:
+  enabled: true
+  radii_m: [80.0, 160.0, 240.0]
+  profile_distances_m: [40.0, 80.0, 160.0, 240.0]
+  directions: 8
+  profile_weight: 0.35
+  openness_weight: 0.25
+  tpi_weight: 0.20
+  relief_weight: 0.20
+  score_percentile: 72.0
+  min_tpi_percentile: 28.0
+  min_local_relief_m: 0.8
+  local_max_window_m: 140.0
+  local_max_tolerance: 0.08
+  min_distance_to_valley_m: 6.0
+  min_edge_distance_m: 70.0
+  min_distance_from_existing_ridge_m: 35.0
+  closing_disk: 2
+  min_area_cells: 60
+  min_line_length: 120.0
+  keep_top_n: 60
+
+watershed_divide_ridge:
+  enabled: true
+  min_valley_line_length_m: 140.0
+  major_valley_keep_top_n: 45
+  include_broad_valley: false
+  use_broad_valley_for_measure: true
+  min_basin_area_cells: 500
+  max_unassigned_fill_distance_m: 120.0
+  min_distance_to_valley_m: 16.0
+  min_hand_m: 1.8
+  tpi_radius_m: 180.0
+  min_tpi_percentile: 35.0
+  min_edge_distance_m: 70.0
+  boundary_dilation_m: 8.0
+  closing_disk: 1
+  min_area_cells: 60
+  min_line_length: 130.0
+  keep_top_n: 40
+  save_debug: false
+
+ridge_center_supplement:
+  enabled: true
+  local_max_window_m: 160.0
+  local_max_tolerance_m: 5.0
+  min_distance_to_valley_m: 18.0
+  min_hand_m: 1.8
+  tpi_radius_m: 180.0
+  min_tpi_percentile: 38.0
+  min_edge_distance_m: 70.0
+  min_distance_from_existing_ridge_m: 45.0
+  closing_disk: 1
+  min_area_cells: 70
+  min_line_length: 130.0
+  keep_top_n: 20
+  save_debug: false
+
+ridge_final_filter:
+  enabled: true
+  min_line_length_m: 100.0
+  min_mean_score: 0.38
+  profile_half_width_m: 45.0
+  min_profile_extreme_ratio: 0.22
+  min_profile_relief_m: 0.5
+  min_distance_to_valley_m: 8.0
+  max_near_valley_ratio: 0.35
+  min_edge_distance_m: 70.0
+
+broad_crest_final_filter:
+  min_line_length_m: 120.0
+  min_mean_score: 0.36
+  min_profile_extreme_ratio: 0.10
+  min_profile_relief_m: 0.7
+  max_near_valley_ratio: 0.35
+  min_edge_distance_m: 70.0
+
+connector_final_filter:
+  enabled: true
+  min_line_length_m: 20.0
+  min_mean_score: 0.40
+  min_profile_extreme_ratio: 0.0
+  min_profile_relief_m: 0.0
+  min_distance_to_valley_m: 6.0
+  max_near_valley_ratio: 0.20
+  min_edge_distance_m: 70.0
+
+ridge_dense_prune:
+  enabled: true
+  min_distance_m: 20.0
+  near_ratio_threshold: 0.60
+  max_angle_diff_deg: 25.0
+
+broad_ridge:
+  enabled: false
+  radius_m: 120.0
+  ridge_score_percentile: 68.0
+  min_area_cells: 70
+  min_line_length: 80.0
+  keep_top_n: 50
+  closing_disk: 2
+  use_curvature: true
+  curvature_weight: 0.20
+  tpi_weight: 1.45
+  slope_weight: 0.05
+  suppress_flow: false
+  filter_existing_flow_lines: false
+  min_distance_from_existing: 20.0
+  near_ratio_threshold: 0.75
+
+broad_ridge_prune:
+  min_distance: 12.0
+  near_ratio_threshold: 0.80
+
+ridge_openness:
+  enabled: false
+  radii_m: [60.0, 120.0, 200.0]
+  sample_step_m: 6.0
+  directions: 8
+  openness_weight: 0.45
+  tpi_weight: 0.45
+  curvature_weight: 0.10
+  slope_weight: 0.0
+  score_percentile: 68.0
+  min_tpi_percentile: 40.0
+  max_slope_deg: 60.0
+  min_distance_to_valley: 10.0
+  closing_disk: 2
+  min_area_cells: 50
+  min_line_length: 90.0
+  keep_top_n: 30
+  profile_half_width_m: 45.0
+  ridge_extreme_ratio_min: 0.05
+  ridge_relief_min: 0.05
+  filter_existing_ridge: false
+  min_distance_from_existing: 12.0
+  near_ratio_threshold: 0.85
+  suppress_flow: false
+  suppress_flow_distance: 30.0
+  suppress_flow_near_ratio: 0.40
+
+ridge_divide_axis:
+  enabled: false
+
+  min_distance_to_valley: 10.0
+  distance_percentile: 35.0
+  tpi_radius_m: 180.0
+  min_tpi_percentile: 28.0
+  max_slope_deg: 65.0
+
+  distance_weight: 0.15
+  tpi_weight: 0.45
+  curvature_weight: 0.05
+  openness_weight: 0.15
+  relief_weight: 0.25
+  openness_radius_m: 180.0
+  openness_sample_step_m: 8.0
+
+  local_max_window_m: 60.0
+  local_max_tolerance: 0.12
+
+  closing_disk: 2
+  min_area_cells: 30
+  min_line_length: 70.0
+  keep_top_n: 100
+
+  profile_half_width_m: 50.0
+  ridge_extreme_ratio_min: 0.02
+  ridge_relief_min: 0.02
+
+  filter_existing_ridge: false
+  min_distance_from_existing: 18.0
+  near_ratio_threshold: 0.85
+
+ridge_divide_axis_prune:
+  min_distance: 12.0
+  near_ratio_threshold: 0.80
+
+ridge_gap_connect:
+  enabled: true
+  min_gap_m: 12.0
+  max_gap_m: 180.0
+  max_angle_deg: 65.0
+
+  min_mean_score: 0.42
+  min_min_score: 0.18
+  max_path_factor: 1.70
+  max_near_valley_ratio: 0.25
+  min_valley_distance_m: 6.0
+  min_edge_distance_m: 70.0
+
+  ridge_score_weight: 0.55
+  profile_score_weight: 0.25
+  tpi_weight: 0.15
+  valley_distance_weight: 0.05
+
+  search_margin_m: 60.0
+
+  max_connections_per_iter: 80
+  iterations: 1
+
+  min_connector_length_m: 12.0
+  max_connector_length_m: 180.0
+
+  network_snap_tolerance_m: 8.0
+  network_min_length_m: 120.0
+
+valley_divide_ridge:
+  enabled: false
+
+  local_max_window_m: 90.0
+  local_max_tolerance_m: 10.0
+
+  min_distance_to_valley_m: 18.0
+  min_edge_distance_m: 50.0
+
+  tpi_radius_m: 180.0
+  min_tpi_percentile: 32.0
+  min_relief_to_valley_m: 1.5
+
+  closing_disk: 2
+  min_area_cells: 40
+  min_line_length: 90.0
+  keep_top_n: 120
+
+ridge_shoulder:
+  enabled: false
+  radius_m: 18.0
+  ridge_score_percentile: 79.0
+  min_area_cells: 15
+  min_line_length: 16.0
+  keep_top_n: 90
+  closing_disk: 1
+  use_curvature: true
+  curvature_weight: 1.35
+  tpi_weight: 0.75
+  slope_weight: 0.35
+  filter_existing_flow_lines: false
+
+ridge_shoulder_prune:
+  min_distance: 6.0
+  near_ratio_threshold: 0.94
+
+line_importance:
+  enabled: true
+  profile_half_width_m: 45.0
+  n_line_samples: 30
+  n_profile_samples: 21
+  valley_extreme_ratio_min: 0.60
+  valley_relief_min: 2.0
+  ridge_extreme_ratio_min: 0.25
+  ridge_relief_min: 0.5
+  high_threshold: 0.70
+  medium_threshold: 0.32
+
+dual_source:
+  enabled: false
+
+  candidate_source:
+    enabled: true
+    classes: [2, 16]
+    exclude_classes: [1, 4]
+    smooth_sigma_cells: 1.0
+    prefer_stable_ground_in_mixed_cell: false
+    stable_ground_class: 2
+    candidate_class: 16
+
+  pass1_source:
+    enabled: true
+    classes: [2, 16]
+    exclude_classes: [1, 4]
+    smooth_sigma_cells: 1.0
+
+structure_fusion:
+  enabled: true
+  ridge_buffer_m: 15.0
+  valley_buffer_m: 18.0
+  conflict_distance_m: 10.0
+  output_distance_maps: true
+  output_debug_preview: true
+  output_point_las: true
+  point_include_classes: [2, 16]
+  point_exclude_classes: [1, 4]
+
+grid:
+  use_unified_bounds: true
+  bounds_source: "las_header"
