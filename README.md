@@ -1,68 +1,70 @@
-# 山谷线和山脊线提取程序
+﻿# shanji
 
-本项目用于从 LAS/LAZ 点云中提取山谷线和山脊线，并把结果保存为 GeoJSON、特征点 LAS 和预览图。程序会先从地面点生成 DTM，再结合汇流追踪、宽谷补充、山脊开阔度、分水岭山脊、脊线补全和后处理过滤得到最终线要素。
+# 灞辫胺绾垮拰灞辫剨绾挎彁鍙栫▼搴?
 
-## 适用输入
+鏈」鐩敤浜庝粠 LAS/LAZ 鐐逛簯涓彁鍙栧北璋风嚎鍜屽北鑴婄嚎锛屽苟鎶婄粨鏋滀繚瀛樹负 GeoJSON銆佺壒寰佺偣 LAS 鍜岄瑙堝浘銆傜▼搴忎細鍏堜粠鍦伴潰鐐圭敓鎴?DTM锛屽啀缁撳悎姹囨祦杩借釜銆佸璋疯ˉ鍏呫€佸北鑴婂紑闃斿害銆佸垎姘村箔灞辫剨銆佽剨绾胯ˉ鍏ㄥ拰鍚庡鐞嗚繃婊ゅ緱鍒版渶缁堢嚎瑕佺礌銆?
 
-- 输入文件格式：`.las` 或 `.laz`
-- 点云必须包含 `x/y/z` 坐标
-- 点云必须包含 `classification` 字段
-- 默认只使用 `classification = 2` 的地面点参与分析
+## 閫傜敤杈撳叆
 
-`config.yaml` 当前默认输入为：
+- 杈撳叆鏂囦欢鏍煎紡锛歚.las` 鎴?`.laz`
+- 鐐逛簯蹇呴』鍖呭惈 `x/y/z` 鍧愭爣
+- 鐐逛簯蹇呴』鍖呭惈 `classification` 瀛楁
+- 榛樿鍙娇鐢?`classification = 2` 鐨勫湴闈㈢偣鍙備笌鍒嗘瀽
+
+`config.yaml` 褰撳墠榛樿杈撳叆涓猴細
 
 ```yaml
 input_las: "processed_12.las"
 ground_class: 2
 ```
 
-也可以在运行时通过 `--input` 指定单个点云文件或包含多个点云的文件夹。
+涔熷彲浠ュ湪杩愯鏃堕€氳繃 `--input` 鎸囧畾鍗曚釜鐐逛簯鏂囦欢鎴栧寘鍚涓偣浜戠殑鏂囦欢澶广€?
 
-## 安装依赖
+## 瀹夎渚濊禆
 
-建议使用虚拟环境后安装依赖：
+寤鸿浣跨敤铏氭嫙鐜鍚庡畨瑁呬緷璧栵細
 
 ```bash
 pip install -r requirements.txt
 ```
 
-主要依赖包括 `laspy`、`numpy`、`scipy`、`rasterio`、`scikit-image`、`shapely`、`pyproj`、`pyyaml`、`matplotlib` 和 `Pillow`。
+涓昏渚濊禆鍖呮嫭 `laspy`銆乣numpy`銆乣scipy`銆乣rasterio`銆乣scikit-image`銆乣shapely`銆乣pyproj`銆乣pyyaml`銆乣matplotlib` 鍜?`Pillow`銆?
 
-## 运行方法
+## 杩愯鏂规硶
 
-使用 `config.yaml` 中的默认输入：
+浣跨敤 `config.yaml` 涓殑榛樿杈撳叆锛?
 
 ```bash
 python main.py --config config.yaml
 ```
 
-指定单个点云：
+鎸囧畾鍗曚釜鐐逛簯锛?
 
 ```bash
 python main.py --input processed_12.las --config config.yaml
 ```
 
-批量处理文件夹中的全部 `.las/.laz` 点云：
+鎵归噺澶勭悊鏂囦欢澶逛腑鐨勫叏閮?`.las/.laz` 鐐逛簯锛?
 
 ```bash
 python main.py --input data --config config.yaml
 ```
 
-说明：
+璇存槑锛?
 
-- `--config` 是可选配置覆盖文件；不传时会使用 `main.py` 内置默认配置。
-- `--input` 优先级高于 `config.yaml` 里的 `input_las`。
-- 当 `--input` 是文件夹时，程序会递归查找 `.las/.laz` 文件，并自动跳过路径中包含 `output` 的目录。
+- `--config` 鏄彲閫夐厤缃鐩栨枃浠讹紱涓嶄紶鏃朵細浣跨敤 `main.py` 鍐呯疆榛樿閰嶇疆銆?
+- `--input` 浼樺厛绾ч珮浜?`config.yaml` 閲岀殑 `input_las`銆?
+- 褰?`--input` 鏄枃浠跺す鏃讹紝绋嬪簭浼氶€掑綊鏌ユ壘 `.las/.laz` 鏂囦欢锛屽苟鑷姩璺宠繃璺緞涓寘鍚?`output` 鐨勭洰褰曘€?
 
-## 输出位置
+## 杈撳嚭浣嶇疆
 
-当前 `main.py` 使用批处理输出规则，不直接使用 `config.yaml` 中的 `output_dir` 作为最终目录。每个输入点云的输出目录为：
+褰撳墠 `main.py` 浣跨敤鎵瑰鐞嗚緭鍑鸿鍒欙紝涓嶇洿鎺ヤ娇鐢?`config.yaml` 涓殑 `output_dir` 浣滀负鏈€缁堢洰褰曘€傛瘡涓緭鍏ョ偣浜戠殑杈撳嚭鐩綍涓猴細
 
 ```text
-<输入点云所在目录>/output/<点云文件名不含扩展名>/
+<杈撳叆鐐逛簯鎵€鍦ㄧ洰褰?/output/<鐐逛簯鏂囦欢鍚嶄笉鍚墿灞曞悕>/
 ```
 
-示例：
+绀轰緥锛?
 
 ```text
 processed_12.las
@@ -73,44 +75,44 @@ output/
     preview.png
 ```
 
-如果输入为 `data/a.las`，则输出到：
+濡傛灉杈撳叆涓?`data/a.las`锛屽垯杈撳嚭鍒帮細
 
 ```text
 data/output/a/
 ```
 
-## 输出文件
+## 杈撳嚭鏂囦欢
 
 ### terrain_features.geojson
 
-最终山谷线和山脊线矢量结果，格式为 GeoJSON `FeatureCollection`。
+鏈€缁堝北璋风嚎鍜屽北鑴婄嚎鐭㈤噺缁撴灉锛屾牸寮忎负 GeoJSON `FeatureCollection`銆?
 
-主要属性：
+涓昏灞炴€э細
 
-| 字段 | 说明 |
+| 瀛楁 | 璇存槑 |
 | --- | --- |
-| `feature_type` | 要素类型，`valley` 表示山谷线，`ridge` 表示山脊线 |
-| `valley_method` | 山谷线来源，如 `flow_trace`、`broad_valley`、`major_valley` |
-| `ridge_method` | 山脊线来源，当前统一写为 `ridge_openness_top_combined` |
-| `importance_score` | 重要性评分，启用 `line_importance.enabled` 时写入 |
-| `importance_level` | 重要性等级：`high`、`medium`、`low` |
-| `extreme_ratio` | 剖面极值比例 |
-| `mean_local_relief` | 平均局部起伏 |
+| `feature_type` | 瑕佺礌绫诲瀷锛宍valley` 琛ㄧず灞辫胺绾匡紝`ridge` 琛ㄧず灞辫剨绾?|
+| `valley_method` | 灞辫胺绾挎潵婧愶紝濡?`flow_trace`銆乣broad_valley`銆乣major_valley` |
+| `ridge_method` | 灞辫剨绾挎潵婧愶紝褰撳墠缁熶竴鍐欎负 `ridge_openness_top_combined` |
+| `importance_score` | 閲嶈鎬ц瘎鍒嗭紝鍚敤 `line_importance.enabled` 鏃跺啓鍏?|
+| `importance_level` | 閲嶈鎬х瓑绾э細`high`銆乣medium`銆乣low` |
+| `extreme_ratio` | 鍓栭潰鏋佸€兼瘮渚?|
+| `mean_local_relief` | 骞冲潎灞€閮ㄨ捣浼?|
 
-该文件可直接在 QGIS、ArcGIS 等 GIS 软件中打开。
+璇ユ枃浠跺彲鐩存帴鍦?QGIS銆丄rcGIS 绛?GIS 杞欢涓墦寮€銆?
 
 ### terrain_feature_points.las
 
-从原始地面点中筛选靠近最终特征线的点，并写出为新的 LAS 文件。
+浠庡師濮嬪湴闈㈢偣涓瓫閫夐潬杩戞渶缁堢壒寰佺嚎鐨勭偣锛屽苟鍐欏嚭涓烘柊鐨?LAS 鏂囦欢銆?
 
-标记规则：
+鏍囪瑙勫垯锛?
 
-| `user_data` | 含义 |
+| `user_data` | 鍚箟 |
 | --- | --- |
-| `1` | 山谷特征点 |
-| `2` | 山脊特征点 |
+| `1` | 灞辫胺鐗瑰緛鐐?|
+| `2` | 灞辫剨鐗瑰緛鐐?|
 
-默认启用重要性过滤：
+榛樿鍚敤閲嶈鎬ц繃婊わ細
 
 ```yaml
 point_mapping:
@@ -119,22 +121,22 @@ point_mapping:
   min_importance_level: "medium"
 ```
 
-也就是说，只有达到 `medium` 或 `high` 等级的线会参与特征点映射。
+涔熷氨鏄锛屽彧鏈夎揪鍒?`medium` 鎴?`high` 绛夌骇鐨勭嚎浼氬弬涓庣壒寰佺偣鏄犲皠銆?
 
 ### preview.png
 
-最终预览图：
+鏈€缁堥瑙堝浘锛?
 
-- 背景为 DTM 阴影图
-- 蓝色线为山谷线
-- 红色线为山脊线
-- 青色虚线用于显示宽谷补充线
+- 鑳屾櫙涓?DTM 闃村奖鍥?
+- 钃濊壊绾夸负灞辫胺绾?
+- 绾㈣壊绾夸负灞辫剨绾?
+- 闈掕壊铏氱嚎鐢ㄤ簬鏄剧ず瀹借胺琛ュ厖绾?
 
-该图主要用于人工快速检查结果，不建议作为正式空间数据使用。
+璇ュ浘涓昏鐢ㄤ簬浜哄伐蹇€熸鏌ョ粨鏋滐紝涓嶅缓璁綔涓烘寮忕┖闂存暟鎹娇鐢ㄣ€?
 
-### 可选调试输出
+### 鍙€夎皟璇曡緭鍑?
 
-当配置中开启相关开关时，会额外输出调试图或阶段预览图：
+褰撻厤缃腑寮€鍚浉鍏冲紑鍏虫椂锛屼細棰濆杈撳嚭璋冭瘯鍥炬垨闃舵棰勮鍥撅細
 
 ```yaml
 output:
@@ -146,7 +148,7 @@ output:
   save_openness_debug: false
 ```
 
-可能生成的文件包括：
+鍙兘鐢熸垚鐨勬枃浠跺寘鎷細
 
 - `preview_flow_only.png`
 - `preview_broad_valley_only.png`
@@ -158,70 +160,70 @@ output:
 - `debug_ridge_accumulation.png`
 - `debug_trace_seeds.png`
 
-## 主要流程
+## 涓昏娴佺▼
 
-1. 读取 LAS/LAZ，并筛选 `ground_class` 对应的地面点。
-2. 按 `dtm.resolution` 栅格化生成 DTM，每个格网取地面点高程中值。
-3. 对无值区做有限距离 IDW 填补，最大距离由 `dtm.max_fill_distance` 控制。
-4. 对 DTM 做 NaN 安全的高斯平滑。
-5. 计算 D8 流向和汇流累积量。
-6. 使用 `flow_trace_two_stage` 提取主山谷线和补充山谷线。
-7. 提取宽谷线，并与流线结果做去重、裁剪和合并。
-8. 通过开阔度、TPI、剖面形态、分水岭边界和谷线距离等指标提取山脊线。
-9. 对山脊线执行边界过滤、断裂连接、密集线裁剪和最终剖面过滤。
-10. 评估线的重要性，保存 GeoJSON、特征点 LAS 和预览图。
+1. 璇诲彇 LAS/LAZ锛屽苟绛涢€?`ground_class` 瀵瑰簲鐨勫湴闈㈢偣銆?
+2. 鎸?`dtm.resolution` 鏍呮牸鍖栫敓鎴?DTM锛屾瘡涓牸缃戝彇鍦伴潰鐐归珮绋嬩腑鍊笺€?
+3. 瀵规棤鍊煎尯鍋氭湁闄愯窛绂?IDW 濉ˉ锛屾渶澶ц窛绂荤敱 `dtm.max_fill_distance` 鎺у埗銆?
+4. 瀵?DTM 鍋?NaN 瀹夊叏鐨勯珮鏂钩婊戙€?
+5. 璁＄畻 D8 娴佸悜鍜屾眹娴佺疮绉噺銆?
+6. 浣跨敤 `flow_trace_two_stage` 鎻愬彇涓诲北璋风嚎鍜岃ˉ鍏呭北璋风嚎銆?
+7. 鎻愬彇瀹借胺绾匡紝骞朵笌娴佺嚎缁撴灉鍋氬幓閲嶃€佽鍓拰鍚堝苟銆?
+8. 閫氳繃寮€闃斿害銆乀PI銆佸墫闈㈠舰鎬併€佸垎姘村箔杈圭晫鍜岃胺绾胯窛绂荤瓑鎸囨爣鎻愬彇灞辫剨绾裤€?
+9. 瀵瑰北鑴婄嚎鎵ц杈圭晫杩囨护銆佹柇瑁傝繛鎺ャ€佸瘑闆嗙嚎瑁佸壀鍜屾渶缁堝墫闈㈣繃婊ゃ€?
+10. 璇勪及绾跨殑閲嶈鎬э紝淇濆瓨 GeoJSON銆佺壒寰佺偣 LAS 鍜岄瑙堝浘銆?
 
-## 关键配置说明
+## 鍏抽敭閰嶇疆璇存槑
 
-### 输入和 DTM
+### 杈撳叆鍜?DTM
 
-| 参数 | 当前值 | 说明 |
+| 鍙傛暟 | 褰撳墠鍊?| 璇存槑 |
 | --- | --- | --- |
-| `input_las` | `processed_12.las` | 默认输入文件或文件夹 |
-| `ground_class` | `2` | 地面点分类值 |
-| `dtm.resolution` | `2.0` | DTM 分辨率，单位米 |
-| `dtm.max_fill_distance` | `20.0` | DTM 无值区最大填补距离，单位米 |
-| `dtm.smooth_sigma_cells` | `1.2` | 山谷分析用 DTM 平滑强度 |
-| `ridge_dtm.smooth_sigma_cells` | `0.9` | 山脊分析用 DTM 平滑强度 |
+| `input_las` | `processed_12.las` | 榛樿杈撳叆鏂囦欢鎴栨枃浠跺す |
+| `ground_class` | `2` | 鍦伴潰鐐瑰垎绫诲€?|
+| `dtm.resolution` | `2.0` | DTM 鍒嗚鲸鐜囷紝鍗曚綅绫?|
+| `dtm.max_fill_distance` | `20.0` | DTM 鏃犲€煎尯鏈€澶у～琛ヨ窛绂伙紝鍗曚綅绫?|
+| `dtm.smooth_sigma_cells` | `1.2` | 灞辫胺鍒嗘瀽鐢?DTM 骞虫粦寮哄害 |
+| `ridge_dtm.smooth_sigma_cells` | `0.9` | 灞辫剨鍒嗘瀽鐢?DTM 骞虫粦寮哄害 |
 
-### 山谷线
+### 灞辫胺绾?
 
-| 参数 | 当前值 | 说明 |
+| 鍙傛暟 | 褰撳墠鍊?| 璇存槑 |
 | --- | --- | --- |
-| `extraction.method` | `flow_trace_two_stage` | 两阶段汇流追踪 |
-| `valley.primary.seed_percentile` | `97.8` | 主山谷种子阈值分位数 |
-| `valley.primary.continue_percentile` | `85.0` | 主山谷延续阈值分位数 |
-| `valley.primary.min_line_length` | `90.0` | 主山谷最小线长，单位米 |
-| `valley.supplement.enabled` | `true` | 是否启用补充山谷线 |
-| `broad_valley.enabled` | `true` | 是否启用宽谷提取 |
-| `major_valley_filter.enabled` | `true` | 是否启用主山谷筛选 |
+| `extraction.method` | `flow_trace_two_stage` | 涓ら樁娈垫眹娴佽拷韪?|
+| `valley.primary.seed_percentile` | `97.8` | 涓诲北璋风瀛愰槇鍊煎垎浣嶆暟 |
+| `valley.primary.continue_percentile` | `85.0` | 涓诲北璋峰欢缁槇鍊煎垎浣嶆暟 |
+| `valley.primary.min_line_length` | `90.0` | 涓诲北璋锋渶灏忕嚎闀匡紝鍗曚綅绫?|
+| `valley.supplement.enabled` | `true` | 鏄惁鍚敤琛ュ厖灞辫胺绾?|
+| `broad_valley.enabled` | `true` | 鏄惁鍚敤瀹借胺鎻愬彇 |
+| `major_valley_filter.enabled` | `true` | 鏄惁鍚敤涓诲北璋风瓫閫?|
 
-### 山脊线
+### 灞辫剨绾?
 
-| 参数 | 当前值 | 说明 |
+| 鍙傛暟 | 褰撳墠鍊?| 璇存槑 |
 | --- | --- | --- |
-| `ridge_openness_top.enabled` | `true` | 启用顶部开阔度山脊提取 |
-| `broad_crest_ridge.enabled` | `true` | 启用宽缓脊补充 |
-| `watershed_divide_ridge.enabled` | `true` | 启用分水岭山脊提取 |
-| `ridge_center_supplement.enabled` | `true` | 启用山脊中心补充 |
-| `ridge_gap_connect.enabled` | `true` | 启用山脊断裂连接 |
-| `ridge_final_filter.enabled` | `true` | 启用最终剖面过滤 |
-| `ridge_dense_prune.enabled` | `true` | 启用密集山脊线裁剪 |
+| `ridge_openness_top.enabled` | `true` | 鍚敤椤堕儴寮€闃斿害灞辫剨鎻愬彇 |
+| `broad_crest_ridge.enabled` | `true` | 鍚敤瀹界紦鑴婅ˉ鍏?|
+| `watershed_divide_ridge.enabled` | `true` | 鍚敤鍒嗘按宀北鑴婃彁鍙?|
+| `ridge_center_supplement.enabled` | `true` | 鍚敤灞辫剨涓績琛ュ厖 |
+| `ridge_gap_connect.enabled` | `true` | 鍚敤灞辫剨鏂杩炴帴 |
+| `ridge_final_filter.enabled` | `true` | 鍚敤鏈€缁堝墫闈㈣繃婊?|
+| `ridge_dense_prune.enabled` | `true` | 鍚敤瀵嗛泦灞辫剨绾胯鍓?|
 
-### 边界和后处理
+### 杈圭晫鍜屽悗澶勭悊
 
-| 参数 | 当前值 | 说明 |
+| 鍙傛暟 | 褰撳墠鍊?| 璇存槑 |
 | --- | --- | --- |
-| `edge_filter.enabled` | `true` | 启用边界过滤 |
-| `edge_filter.ridge_edge_buffer_m` | `80.0` | 山脊核心区边界缓冲距离 |
-| `edge_filter.valley_edge_buffer_m` | `20.0` | 山谷边界缓冲距离 |
-| `postprocess_valley.merge_distance` | `12.0` | 山谷线合并距离 |
-| `postprocess_ridge.merge_distance` | `20.0` | 山脊线合并距离 |
-| `postprocess_ridge.max_merge_angle_deg` | `50.0` | 山脊线最大合并角度 |
+| `edge_filter.enabled` | `true` | 鍚敤杈圭晫杩囨护 |
+| `edge_filter.ridge_edge_buffer_m` | `80.0` | 灞辫剨鏍稿績鍖鸿竟鐣岀紦鍐茶窛绂?|
+| `edge_filter.valley_edge_buffer_m` | `20.0` | 灞辫胺杈圭晫缂撳啿璺濈 |
+| `postprocess_valley.merge_distance` | `12.0` | 灞辫胺绾垮悎骞惰窛绂?|
+| `postprocess_ridge.merge_distance` | `20.0` | 灞辫剨绾垮悎骞惰窛绂?|
+| `postprocess_ridge.max_merge_angle_deg` | `50.0` | 灞辫剨绾挎渶澶у悎骞惰搴?|
 
-## 常用调参建议
+## 甯哥敤璋冨弬寤鸿
 
-减少山谷线数量：
+鍑忓皯灞辫胺绾挎暟閲忥細
 
 ```yaml
 valley:
@@ -230,7 +232,7 @@ valley:
     continue_percentile: 88.0
 ```
 
-增加山谷线数量：
+澧炲姞灞辫胺绾挎暟閲忥細
 
 ```yaml
 valley:
@@ -241,7 +243,7 @@ valley:
     enabled: true
 ```
 
-减少边缘附近的误提取山脊：
+鍑忓皯杈圭紭闄勮繎鐨勮鎻愬彇灞辫剨锛?
 
 ```yaml
 edge_filter:
@@ -249,7 +251,7 @@ edge_filter:
   endpoint_edge_buffer_m: 90.0
 ```
 
-让特征点 LAS 标记更多点：
+璁╃壒寰佺偣 LAS 鏍囪鏇村鐐癸細
 
 ```yaml
 point_mapping:
@@ -257,34 +259,34 @@ point_mapping:
   min_importance_level: "low"
 ```
 
-提高 DTM 精细度但增加运行时间：
+鎻愰珮 DTM 绮剧粏搴︿絾澧炲姞杩愯鏃堕棿锛?
 
 ```yaml
 dtm:
   resolution: 1.0
 ```
 
-降低运行时间但结果更粗：
+闄嶄綆杩愯鏃堕棿浣嗙粨鏋滄洿绮楋細
 
 ```yaml
 dtm:
   resolution: 5.0
 ```
 
-## 常见问题
+## 甯歌闂
 
-### 没有生成 `terrain_feature_points.las`
+### 娌℃湁鐢熸垚 `terrain_feature_points.las`
 
-检查：
+妫€鏌ワ細
 
-- `output.save_feature_points` 是否为 `true`
-- `line_importance.enabled` 和 `point_mapping.min_importance_level` 是否过滤过严
-- `point_mapping.point_buffer_distance` 是否过小
-- 输入点云是否有足够的 `classification = 2` 地面点
+- `output.save_feature_points` 鏄惁涓?`true`
+- `line_importance.enabled` 鍜?`point_mapping.min_importance_level` 鏄惁杩囨护杩囦弗
+- `point_mapping.point_buffer_distance` 鏄惁杩囧皬
+- 杈撳叆鐐逛簯鏄惁鏈夎冻澶熺殑 `classification = 2` 鍦伴潰鐐?
 
-### 输出线太靠近数据边缘
+### 杈撳嚭绾垮お闈犺繎鏁版嵁杈圭紭
 
-增大边界过滤距离：
+澧炲ぇ杈圭晫杩囨护璺濈锛?
 
 ```yaml
 edge_filter:
@@ -293,39 +295,39 @@ edge_filter:
   endpoint_edge_buffer_m: 90.0
 ```
 
-### 批量处理时输出在哪里
+### 鎵归噺澶勭悊鏃惰緭鍑哄湪鍝噷
 
-每个输入文件都会在自己的同级 `output/<文件名>/` 目录下生成结果。例如：
+姣忎釜杈撳叆鏂囦欢閮戒細鍦ㄨ嚜宸辩殑鍚岀骇 `output/<鏂囦欢鍚?/` 鐩綍涓嬬敓鎴愮粨鏋溿€備緥濡傦細
 
 ```text
 data/tile_001.las -> data/output/tile_001/
 data/tile_002.laz -> data/output/tile_002/
 ```
 
-### 修改 `config.yaml` 后是否需要重新运行
+### 淇敼 `config.yaml` 鍚庢槸鍚﹂渶瑕侀噸鏂拌繍琛?
 
-需要。修改参数后重新执行：
+闇€瑕併€備慨鏀瑰弬鏁板悗閲嶆柊鎵ц锛?
 
 ```bash
 python main.py --config config.yaml
 ```
 
-## 项目文件
+## 椤圭洰鏂囦欢
 
 ```text
 D:\xishudimiandian\shanjixiantiqu\
-  main.py            主程序
-  config.yaml        配置文件
-  requirements.txt   Python 依赖
-  README.md          使用说明
-  processed_12.las   示例/默认输入点云
-  data\              可选批处理输入目录
+  main.py            涓荤▼搴?
+  config.yaml        閰嶇疆鏂囦欢
+  requirements.txt   Python 渚濊禆
+  README.md          浣跨敤璇存槑
+  processed_12.las   绀轰緥/榛樿杈撳叆鐐逛簯
+  data\              鍙€夋壒澶勭悊杈撳叆鐩綍
 ```
 
-## 版本
+## 鐗堟湰
 
-- 更新时间：2026-06-02
-- 当前说明基于 `main.py` 和 `config.yaml` 更新
+- 鏇存柊鏃堕棿锛?026-06-02
+- 褰撳墠璇存槑鍩轰簬 `main.py` 鍜?`config.yaml` 鏇存柊
 
 ## Dual-source structure fusion
 
@@ -385,3 +387,5 @@ The fused point LAS files preserve the original `classification` values and use 
 - `2`: ridge
 - `3`: ridge and valley overlap
 - `4`: conflict
+
+
