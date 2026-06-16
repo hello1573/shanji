@@ -1,4 +1,4 @@
-﻿input_las: "processed_12.las"
+input_las: "processed_12.las"
 output_dir: "outputs_flowtrace_v13"
 ground_class: 2
 ground_classes: [2, 16]
