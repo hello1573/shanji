@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Tuple, List, Dict, Optional
 
 import laspy
+from laspy.header import Version
 import rasterio
 from rasterio import features as rio_features
 from rasterio.transform import Affine
@@ -38,6 +39,7 @@ from pyproj import CRS
 import matplotlib.pyplot as plt
 from matplotlib.colors import LightSource
 from PIL import Image
+from openness_ridge import extract_openness_ridges
 
 
 DEFAULT_CONFIG_YAML = r"""
@@ -231,28 +233,28 @@ terrain_active:
   relief_radius_m: [80.0, 160.0]
   min_relief_m: [1.0, 1.5]
 
-ridge_openness_top:
-  enabled: true
-  radii_m: [40.0, 80.0, 160.0, 240.0]
-  sample_step_m: 6.0
-  directions: 8
-  profile_weight: 0.42
-  openness_weight: 0.32
-  tpi_weight: 0.16
-  relief_weight: 0.10
-  valley_support_weight: 0.00
-  score_percentile: 70.0
-  min_tpi_percentile: 28.0
-  min_local_relief_m: 0.8
-  local_max_window_m: 90.0
-  local_max_tolerance: 0.07
-  min_distance_to_valley_m: 5.0
-  max_distance_to_valley_m: 9999.0
-  min_edge_distance_m: 70.0
-  closing_disk: 2
-  min_area_cells: 45
-  min_line_length: 100.0
-  keep_top_n: 120
+ridge_openness_walk:
+  smooth_iters: 2
+  smooth_k: 1
+
+  # multi-scale background scales as [broad_iters, broad_k] pairs.
+  # bigger pairs capture broad dominant ridges; small pairs capture sharp crests.
+  bg_scales: [[6, 2], [15, 3], [40, 4]]
+
+  # adaptive thresholds (percentiles of each tile's positive strength)
+  seed_pct: 90
+  prom_continue_pct: 65
+  min_mean_prom_pct: 80
+
+  # absolute floors = the noise gate.
+  prom_seed: 0.9
+  prom_continue: 0.6
+  min_mean_prom: 1.0
+
+  # geometry / selection
+  min_length_cells: 120
+  prune_spur_cells: 8
+  keep_top_n: 30
 
 profile_ridge:
   sample_distances_m: [20.0, 40.0, 80.0, 160.0, 240.0]
@@ -663,6 +665,12 @@ class TerrainAnalyzer:
             if hasattr(self.las_all, 'header') and hasattr(self.las_all.header, 'crs'):
                 self.crs = self.las_all.header.crs
         return self.las_all
+
+    def make_output_las_header(self, las) -> laspy.LasHeader:
+        header = las.header.copy()
+        if header.version < Version(1, 1):
+            header.version = Version(1, 1)
+        return header
 
     def read_points_by_classes(self, classes, exclude_classes=None) -> np.ndarray:
         """Read LAS points by classification. Returns Nx4 [x, y, z, class]."""
@@ -5950,7 +5958,7 @@ class TerrainAnalyzer:
         feature_points = las.points[feature_indices].copy()
         
         # 创建新的 LAS 对象
-        output_las = laspy.LasData(las.header)
+        output_las = laspy.LasData(self.make_output_las_header(las))
         output_las.points = feature_points
         
         # 设置 user_data 字段
@@ -7115,7 +7123,7 @@ class TerrainAnalyzer:
             print("[simple_openness] no points selected for class3 output")
             return 0
 
-        output_las = laspy.LasData(las.header)
+        output_las = laspy.LasData(self.make_output_las_header(las))
         output_las.points = las.points[indices].copy()
         output_las.classification = np.full(len(indices), int(cfg.get("output_class", 3)), dtype=np.uint8)
         output_las.user_data = point_user_data[indices].astype(np.uint8)
@@ -7230,14 +7238,41 @@ class TerrainAnalyzer:
             )
             print(f"[simple_openness] terrain active pixels={int(np.sum(terrain_active_mask))}")
 
-        ridge_lines, ridge_score, profile_score = self.extract_openness_top_ridge_lines(
-            dtm_for_ridge,
-            ridge_support_mask,
-            transform,
-            valley_lines=valley_ridge_lines,
-            edge_dist=edge_dist,
-            terrain_active_mask=terrain_active_mask
+        ridge_walk_support = ridge_support_mask.copy().astype(bool)
+        if terrain_active_mask is not None:
+            ridge_walk_support &= terrain_active_mask.astype(bool)
+
+        ridge_cfg = self.config.get("ridge_openness_walk", {})
+        ridge_xy_lines = extract_openness_ridges(
+            openness=openness,
+            support=ridge_walk_support,
+            transform=transform,
+            smooth_iters=ridge_cfg["smooth_iters"],
+            smooth_k=ridge_cfg["smooth_k"],
+            bg_scales=[tuple(s) for s in ridge_cfg["bg_scales"]],
+            seed_pct=ridge_cfg["seed_pct"],
+            prom_seed=ridge_cfg["prom_seed"],
+            prom_continue_pct=ridge_cfg["prom_continue_pct"],
+            prom_continue=ridge_cfg["prom_continue"],
+            min_mean_prom_pct=ridge_cfg["min_mean_prom_pct"],
+            min_mean_prom=ridge_cfg["min_mean_prom"],
+            min_length_cells=ridge_cfg["min_length_cells"],
+            keep_top_n=ridge_cfg["keep_top_n"],
+            prune_spur_cells=ridge_cfg["prune_spur_cells"],
+            min_span_cells=ridge_cfg.get("min_span_cells", 0),
+            max_loop_cells=ridge_cfg.get("max_loop_cells", 0),
+            max_hole_cells=ridge_cfg.get("max_hole_cells", 0),
+            edge_len_frac=ridge_cfg.get("edge_len_frac", 1.0),
+            edge_margin=ridge_cfg.get("edge_margin", 3),
+            min_ridge_spacing=ridge_cfg.get("min_ridge_spacing", 0),
+            max_parallel_overlap=ridge_cfg.get("max_parallel_overlap", 0.5)
         )
+        ridge_lines = [
+            LineString(coords)
+            for coords in ridge_xy_lines
+            if coords is not None and len(coords) >= 2
+        ]
+        print(f"[ridge_openness_walk] lines={len(ridge_lines)}")
 
         if edge_dist is not None and ridge_lines:
             before_r = len(ridge_lines)
@@ -7255,43 +7290,6 @@ class TerrainAnalyzer:
             )
             print(f"[simple_openness] ridge edge filter {before_r} -> {len(ridge_lines)}")
 
-        rgc_cfg = self.config.get("ridge_gap_connect", {})
-        if rgc_cfg.get("enabled", False) and ridge_lines and ridge_score is not None:
-            corridor_score, gap_tpi, gap_valley_dist = self.compute_ridge_corridor_score(
-                dtm_for_ridge,
-                ridge_support_mask,
-                transform,
-                valley_ridge_lines,
-                ridge_score,
-                profile_score,
-                edge_dist=edge_dist,
-                terrain_active_mask=terrain_active_mask
-            )
-            current_ridge_lines = list(ridge_lines)
-            ridge_connectors = []
-            iterations = max(1, int(rgc_cfg.get("iterations", 1)))
-            for _ in range(iterations):
-                connectors = self.connect_ridge_gaps_by_cost_path(
-                    current_ridge_lines,
-                    dtm_for_ridge,
-                    ridge_support_mask,
-                    transform,
-                    ridge_score,
-                    gap_tpi,
-                    gap_valley_dist,
-                    rgc_cfg,
-                    profile_score=profile_score,
-                    edge_dist=edge_dist,
-                    corridor_score=corridor_score
-                )
-                if not connectors:
-                    break
-                ridge_connectors.extend(connectors)
-                current_ridge_lines.extend(connectors)
-            if ridge_connectors:
-                ridge_lines = current_ridge_lines
-            print(f"[simple_openness] ridge gap connectors={len(ridge_connectors)}")
-
         post_ridge = self.config.get("postprocess_ridge", self.config.get("postprocess", {}))
         r_merge = float(post_ridge.get("merge_distance", 0.0))
         r_simp = float(post_ridge.get("simplify_tolerance", 0.0))
@@ -7301,35 +7299,6 @@ class TerrainAnalyzer:
             before_r = len(ridge_lines)
             ridge_lines = self.postprocess_lines(ridge_lines, r_merge, r_simp, r_angle, r_iter)
             print(f"[simple_openness] postprocess ridge {before_r} -> {len(ridge_lines)}")
-
-        dense_cfg = self.config.get("ridge_dense_prune", {})
-        if dense_cfg.get("enabled", False) and ridge_lines:
-            before_r = len(ridge_lines)
-            ridge_lines = self.prune_dense_ridge_lines(
-                ridge_lines,
-                dtm_for_ridge,
-                transform,
-                ridge_score,
-                dense_cfg
-            )
-            print(f"[simple_openness] prune ridge {before_r} -> {len(ridge_lines)}")
-
-        rff_cfg = self.config.get("ridge_final_filter", {})
-        if rff_cfg.get("enabled", False) and ridge_lines:
-            ridge_before_final = list(ridge_lines)
-            ridge_lines = self.filter_final_ridge_lines_by_profile(
-                ridge_lines,
-                dtm_for_ridge,
-                ridge_support_mask,
-                transform,
-                ridge_score=ridge_score,
-                valley_lines=valley_ridge_lines,
-                edge_dist=edge_dist,
-                cfg=rff_cfg
-            )
-            if not ridge_lines and ridge_before_final:
-                ridge_lines = ridge_before_final
-                print("[simple_openness] ridge final filter removed all lines; keeping pre-filter continuous lines")
 
         valley_line_mask = self.rasterize_lines(valley_lines, shape, transform)
         ridge_line_mask = self.rasterize_lines(ridge_lines, shape, transform)
@@ -7517,7 +7486,7 @@ class TerrainAnalyzer:
             if len(indices) == 0:
                 print(f"[structure-las] skip empty {filename}")
                 return 0
-            output_las = laspy.LasData(las.header)
+            output_las = laspy.LasData(self.make_output_las_header(las))
             output_las.points = las.points[indices].copy()
             if code_override is None:
                 output_las.user_data = labels[indices].astype(np.uint8)
