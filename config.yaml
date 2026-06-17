@@ -188,28 +188,36 @@ terrain_active:
   relief_radius_m: [80.0, 160.0]
   min_relief_m: [1.0, 1.5]
 
-ridge_openness_top:
-  enabled: true
-  radii_m: [40.0, 80.0, 160.0, 240.0]
-  sample_step_m: 6.0
-  directions: 8
-  profile_weight: 0.42
-  openness_weight: 0.32
-  tpi_weight: 0.16
-  relief_weight: 0.10
-  valley_support_weight: 0.00
-  score_percentile: 70.0
-  min_tpi_percentile: 28.0
-  min_local_relief_m: 0.8
-  local_max_window_m: 90.0
-  local_max_tolerance: 0.07
-  min_distance_to_valley_m: 5.0
-  max_distance_to_valley_m: 9999.0
-  min_edge_distance_m: 70.0
-  closing_disk: 2
-  min_area_cells: 45
-  min_line_length: 100.0
-  keep_top_n: 120
+ridge_openness_walk:
+  smooth_iters: 2
+  smooth_k: 1
+
+  # multi-scale background scales as [broad_iters, broad_k] pairs.
+  # bigger pairs capture broad dominant ridges; small pairs capture sharp crests.
+  bg_scales: [[6, 2], [15, 3], [40, 4], [80, 5]]   # added (80,5) to lift broad major ridges
+
+  # adaptive thresholds (percentiles of each tile's positive strength)
+  seed_pct: 80              # was 90->84->82->80; lower again to seed the last few missing MAJOR ridges
+  prom_continue_pct: 55     # was 65->60->55; lower so growth bridges saddle gaps and reconnects broken major ridges
+  min_mean_prom_pct: 45     # was 80->55->50->45; KEY recall lever - lower to recover faint-but-long major ridges
+
+  # absolute floors = the noise gate (only fire on flat/degenerate tiles).
+  # IMPORTANT: keep these > 0, otherwise flat tiles emit spurious ridges.
+  prom_seed: 0.5           # was 0.9; lower noise-gate floor so broad crests are not cut
+  prom_continue: 0.25      # was 0.6->0.35->0.25; lower so faint major crests keep growing
+  min_mean_prom: 0.35      # was 1.0->0.5->0.35; lower floor recovers low-strength broad major ridges
+
+  # geometry / selection
+  min_length_cells: 240     # was 300->240; 300 was too aggressive and dropped real medium MAJOR ridges (recall); 240 keeps them, minor branch cleanup is now done by prune_spur_cells
+  min_span_cells: 150       # was 180->150; relax extent floor (~300 m) so real major ridges are not dropped (recall); compact minor systems still filtered
+  prune_spur_cells: 40      # was 16->30->40; raise again to trim more leftover small minor branches (last bump worked well); do NOT exceed ~50 or it starts nibbling real main-ridge tips
+  max_loop_cells: 60        # NEW: remove ring/knot artifacts whose loop length < ~120 m (declutters junctions)
+  max_hole_cells: 300       # NEW: fill enclosed holes <= 300 cells BEFORE thinning -> kills ring/circle artifacts of ANY shape (raise to remove bigger circles, lower if real saddle-rings vanish)
+  keep_top_n: 40            # was 30; allow a few more now that big ridges are recovered
+  edge_len_frac: 0.5        # NEW: ridges touching the data boundary are truncated -> halve their length/span/strength thresholds so real EDGE ridges are recovered; only affects edge-touching systems (interior small ridges stay filtered). 1.0 = off; lower (0.3) = recover even shorter edge ridges
+  edge_margin: 3            # NEW: how many cells inward from the data edge still counts as "edge" (a truncated ridge ends a few cells short of the exact boundary). Raise to 5-6 if edge ridges are still missed; lower toward 1 if interior ridges near the edge get wrongly kept
+  min_ridge_spacing: 12     # NEW: spatial non-max suppression for dense near-PARALLEL ridges - keep the dominant ridge, drop weaker ones within ~24 m of it. 0 = off. Raise (18-25) to keep only the most major ridges / thin denser fans; lower (6-8) to keep more. Crossing/branching ridges are NOT suppressed.
+  max_parallel_overlap: 0.5 # NEW: a ridge is dropped only if > this fraction of its length runs alongside an already-kept stronger ridge. Lower (0.35) = suppress more aggressively; higher (0.7) = only drop near-duplicates
 
 profile_ridge:
   sample_distances_m: [20.0, 40.0, 80.0, 160.0, 240.0]
